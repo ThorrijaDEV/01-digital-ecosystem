@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ecosistema Digital — Organismos en evolución</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #0d131c;
+      --panel2: #111a26;
+      --line: #1d2a3a;
+      --text: #c8d3e0;
+      --dim: #7d8ea0;
+      --accent: #4cc9f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font: 13px/1.45 "Segoe UI", system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+      flex-wrap: wrap;
+    }
+    header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.3px; }
+    header h1 span { color: var(--accent); }
+    header .sub { color: var(--dim); font-size: 12px; }
+    .spacer { flex: 1; }
+    .btn {
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: border-color .15s, color .15s;
+    }
+    .btn:hover { border-color: var(--accent); color: #fff; }
+    .btn.primary { background: #12303f; border-color: #2b6f8f; }
+    .btn.primary:hover { background: #16404f; }
+    select, input[type=text] {
+      background: var(--panel2);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .ctl {
+      display: flex; align-items: center; gap: 6px;
+      color: var(--dim); font-size: 12px;
+    }
+    .ctl input[type=range] { width: 90px; accent-color: var(--accent); }
+    #wrap { flex: 1; display: flex; min-height: 0; }
+    .stage {
+      flex: 1; position: relative; min-width: 0;
+      border-right: 1px solid var(--line);
+    }
+    #world { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; }
+    .hint {
+      position: absolute; left: 10px; bottom: 8px;
+      color: #5b6b7d; font-size: 11px; pointer-events: none;
+    }
+    #side {
+      width: 320px; min-width: 320px;
+      display: flex; flex-direction: column;
+      background: var(--panel);
+      overflow-y: auto;
+    }
+    .section { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    .section h2 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--dim); margin-bottom: 8px;
+    }
+    .grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px;
+      font-size: 12px;
+    }
+    .grid b { text-align: right; font-variant-numeric: tabular-nums; color: #fff; font-weight: 600; }
+    .chart { width: 100%; height: 56px; display: block; margin-bottom: 6px; }
+    .chartbox small { color: var(--dim); font-size: 10px; }
+    #sel-panel { display: none; }
+    .gene { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
+    .gene span { color: var(--dim); }
+    .gene b { font-variant-numeric: tabular-nums; color: #fff; }
+    #nn-canvas { width: 100%; height: 170px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+    #nn-stat { font-size: 10px; color: var(--dim); margin-top: 4px; }
+    .legend-note { font-size: 10px; color: var(--dim); margin-top: 6px; }
+    #sel-meta { font-size: 12px; color: var(--text); margin-bottom: 8px; }
+    #sel-meta b { color: #fff; }
+    footer { border-top: 1px solid var(--line); padding: 4px 12px; color: #4a5a6b; font-size: 11px; background: var(--panel); }
+    @media (max-width: 760px) {
+      #wrap { flex-direction: column; }
+      #side { width: 100%; min-width: 0; max-height: 45vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Ecosistema <span>digital</span></h1>
+    <span class="sub">organismos con redes neuronales evolucionando en tiempo real</span>
+    <div class="spacer"></div>
+    <div class="ctl">semilla <input id="inp-seed" type="text" value="1337" size="6"></div>
+    <div class="ctl">velocidad <input id="opt-speed" type="range" min="1" max="20" value="2"></div>
+    <div class="ctl">comida <input id="opt-food" type="range" min="1" max="20" value="10"></div>
+    <div class="ctl">mutación <input id="opt-mut" type="range" min="1" max="50" value="10"></div>
+  </header>
+  <div id="wrap">
+    <div class="stage">
+      <canvas id="world"></canvas>
+      <div class="hint">rueda = zoom · arrastra = mover · clic = inspeccionar un organismo</div>
+    </div>
+    <div id="side">
+      <div class="section">
+        <h2>Controles</h2>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn primary" id="btn-run">▶ Ejecutar</button>
+          <button class="btn" id="btn-pause">⏸ Pausar</button>
+          <button class="btn" id="btn-reset">↺ Reiniciar</button>
+          <button class="btn" id="btn-sensors">Sensores</button>
+          <button class="btn" id="btn-trails">Trazas</button>
+          <button class="btn" id="btn-toxins">Toxinas</button>
+          <button class="btn" id="btn-kind">Mutación masiva</button>
+        </div>
+      </div>
+      <div class="section">
+        <h2>Estado del ecosistema</h2>
+        <div class="grid">
+          <span>Población</span><b id="stat-pop">0</b>
+          <span>Nacimientos</span><b id="stat-born">0</b>
+          <span>Muertes</span><b id="stat-dead">0</b>
+          <span>Alimento</span><b id="stat-food">0</b>
+          <span>Tamaño medio</span><b id="stat-size">—</b>
+          <span>Velocidad media</span><b id="stat-speed">—</b>
+          <span>Edad media</span><b id="stat-age">—</b>
+          <span>Linajes vivos</span><b id="stat-gen">0</b>
+          <span>Crías/individuo</span><b id="stat-off">—</b>
+          <span>Tiempo (tick)</span><b id="stat-time">0</b>
+          <span>Sim</span><b id="stat-sim-rate">x2</b>
+        </div>
+      </div>
+      <div class="section">
+        <h2>Gráficas</h2>
+        <div class="chartbox">
+          <canvas class="chart" id="chart-pop"></canvas><small>población</small>
+          <canvas class="chart" id="chart-line"></canvas><small>linajes (diversidad genética)</small>
+          <canvas class="chart" id="chart-ref"></canvas><small>fitness: crías por individuo al morir</small>
+        </div>
+      </div>
+      <div class="section" id="sel-panel">
+        <h2>Inspector de organismo</h2>
+        <div id="sel-meta"></div>
+        <h2 style="margin-top:8px;">Genoma (fenotipo)</h2>
+        <div id="sel-genes"></div>
+        <h2 style="margin-top:8px;">Cerebro (red neuronal)</h2>
+        <canvas id="nn-canvas"></canvas>
+        <div id="nn-stat"></div>
+        <div class="legend-note">13 sensores · 16 ocultas · 3 salidas (acelerar, girar, morder)</div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    El color indica el linaje (hue del genoma). Las zonas moradas drenan energía: presión de selección.
+    Los organismos comen, se mueven, producen crías con mutaciones y su red neuronal se optimiza sola.
+  </footer>
+
+  <script src="js/core/neural.js"></script>
+  <script src="js/core/ecosystem.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
